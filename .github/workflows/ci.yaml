@@ -8,6 +8,7 @@ on:
 
 env:
   AWS_REGION: ap-southeast-1
+  ENVIRONMENT: dev
 
 jobs:
   build-and-secure:
@@ -94,11 +95,11 @@ jobs:
         run: |
           git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
           cd devsecops-gitops-config/k8s/overlays/${ENVIRONMENT}
-          
+
           sed -i "s|newTag: .*|newTag: ${IMAGE_TAG}|g" kustomization.yaml
-          
+
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add retail-store.yaml
+          git add kustomization.yaml
           git diff-index --quiet HEAD || git commit -m "Auto-update UI image to tag ${IMAGE_TAG} via CI"
           git push
