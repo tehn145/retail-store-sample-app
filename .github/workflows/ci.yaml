@@ -9,6 +9,7 @@ on:
 env:
   AWS_REGION: ap-southeast-1
   ECR_REPOSITORY: devsecops-dev-ui
+  ENVIROMENT: dev
 
 jobs:
   build-and-secure:
@@ -65,7 +66,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
-          cd devsecops-gitops-config/gitops/retail-store-app
+          cd devsecops-gitops-config/k8s/overlays/${{env.ENVIROMENT}}
 
           sed -i "s|newTag: .*|newTag: ${IMAGE_TAG}|g" kustomization.yaml
 
