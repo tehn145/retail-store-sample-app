@@ -1,0 +1,81 @@
+name: DevSecOps CI - UI Service Version 2
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/ui/**' 
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: devsecops-dev-ui 
+
+jobs:
+  build-and-secure:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner in fs mode
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: './src/ui'
+        format: 'table'
+        exit-code: '0' 
+        severity: 'CRITICAL,HIGH'
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./src/ui
+
+    - name: Run Trivy vulnerability scanner on Image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}'
+        format: 'table'
+        exit-code: '0'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Push to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+# Bước 6 (CD): Cập nhật repo GitOps để ArgoCD tự Deploy
+    - name: Update GitOps Repository
+      env:
+        GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+        IMAGE_TAG: ${{ github.sha }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+      run: |
+        git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
+        cd devsecops-gitops-config/gitops/retail-store-app
+        
+        # Lệnh sed bao quát hơn: tìm bất cứ dòng nào có chữ 'image:' và 'retail-store-sample-ui'
+        sed -i "s|image: .*retail-store-sample-ui.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g" retail-store.yaml
+        
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git add retail-store.yaml
+        
+        # Câu lệnh check an toàn: Chỉ commit khi thực sự có sự thay đổi
+        git diff-index --quiet HEAD || git commit -m "Auto-update UI image to tag ${IMAGE_TAG} via CI"
+        git push
