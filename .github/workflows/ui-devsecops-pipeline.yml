@@ -58,3 +58,21 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+# Bước 6 (CD): Cập nhật repo GitOps để ArgoCD tự Deploy
+    - name: Update GitOps Repository
+      env:
+        GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+        IMAGE_TAG: ${{ github.sha }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+      run: |
+        git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
+        cd devsecops-gitops-config/gitops/retail-store-app
+        
+        sed -i "s|image: public.ecr.aws/aws-containers/retail-store-sample-ui:.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g" retail-store.yaml
+        
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git add retail-store.yaml
+        git commit -m "Auto-update UI image to tag ${IMAGE_TAG} via CI"
+        git push
