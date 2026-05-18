@@ -69,10 +69,13 @@ jobs:
         git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
         cd devsecops-gitops-config/gitops/retail-store-app
         
-        sed -i "s|image: public.ecr.aws/aws-containers/retail-store-sample-ui:.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g" retail-store.yaml
+        # Lệnh sed bao quát hơn: tìm bất cứ dòng nào có chữ 'image:' và 'retail-store-sample-ui'
+        sed -i "s|image: .*retail-store-sample-ui.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g" retail-store.yaml
         
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
         git add retail-store.yaml
-        git commit -m "Auto-update UI image to tag ${IMAGE_TAG} via CI"
+        
+        # Câu lệnh check an toàn: Chỉ commit khi thực sự có sự thay đổi
+        git diff-index --quiet HEAD || git commit -m "Auto-update UI image to tag ${IMAGE_TAG} via CI"
         git push
