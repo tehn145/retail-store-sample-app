@@ -1,31 +1,43 @@
-name: DevSecOps CI - UI Service Version 2
+name: DevSecOps CI - Multi Services
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'src/ui/**'
+      - 'src/**'
 
 env:
   AWS_REGION: ap-southeast-1
-  ECR_REPOSITORY: devsecops-dev-ui
-  ENVIROMENT: dev
+  ENVIRONMENT: dev
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build-and-secure:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: ui
+            context: ./src/ui
+            ecr_repo: devsecops-dev-ui
+          - name: catalog
+            context: ./src/catalog
+            ecr_repo: devsecops-dev-catalog
+          - name: carts
+            context: ./src/cart
+            ecr_repo: devsecops-dev-carts
+          - name: checkout
+            context: ./src/checkout
+            ecr_repo: devsecops-dev-checkout
+          - name: orders
+            context: ./src/orders
+            ecr_repo: devsecops-dev-orders
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner in fs mode
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: './src/ui'
-          format: 'table'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -38,35 +50,29 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Build image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./src/ui
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.ecr_repo }}:${{ env.IMAGE_TAG }} ${{ matrix.service.context }}
 
-      - name: Run Trivy vulnerability scanner on Image
+      - name: Run Trivy vulnerability scanner on image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}'
+          image-ref: '${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.ecr_repo }}:${{ env.IMAGE_TAG }}'
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
-      - name: Push to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Push image to Amazon ECR
         run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.ecr_repo }}:${{ env.IMAGE_TAG }}
 
-      - name: Update GitOps Repository
+      - name: Update GitOps Repository for UI only
+        if: matrix.service.name == 'ui'
         env:
           GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
           git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
-          cd devsecops-gitops-config/k8s/overlays/${{env.ENVIROMENT}}
+          cd devsecops-gitops-config/k8s/overlays/${ENVIRONMENT}
 
           sed -i "s|newTag: .*|newTag: ${IMAGE_TAG}|g" kustomization.yaml
 
