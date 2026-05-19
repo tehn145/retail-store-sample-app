@@ -3,7 +3,7 @@
 # ============================================================
 
 aws_region     = "ap-southeast-1"
-aws_account_id = "248195880649"
+aws_account_id = "<>"
 environment    = "management-huy"
 
 # VPC Configuration
@@ -22,7 +22,7 @@ node_max_size       = 2
 node_instance_types = ["t3.small"]
 
 # Cross-stack integration
-terraform_state_bucket        = "voting-app-terraform-state-248195880649"
+terraform_state_bucket        = "voting-app-terraform-state-<>"
 terraform_state_region        = "ap-southeast-1"
 dev_state_key                 = "environments/dev/terraform.tfstate"
 enable_dev_management_peering = true
