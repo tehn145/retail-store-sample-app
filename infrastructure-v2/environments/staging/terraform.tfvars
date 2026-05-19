@@ -1,5 +1,5 @@
 aws_region     = "ap-southeast-1"
-aws_account_id = "248195880649"
+aws_account_id = "<>"
 environment    = "staging"
 
 vpc_cidr             = "10.1.0.0/16"
