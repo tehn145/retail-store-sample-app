@@ -1,5 +1,5 @@
 aws_region       = "ap-southeast-1"
-aws_account_id   = "248195880649"
+aws_account_id   = "<>"
 environment      = "dev"
 vpc_cidr         = "10.0.0.0/16"
 availability_zones   = ["ap-southeast-1a", "ap-southeast-1b"]
