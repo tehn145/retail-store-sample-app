@@ -4,10 +4,10 @@
 
 terraform {
   backend "s3" {
-    bucket         = "voting-app-terraform-state-248195880649"
+    bucket         = "retail-app-terraform-state-<>"
     key            = "environments/management/terraform.tfstate"
     region         = "ap-southeast-1"
-    dynamodb_table = "voting-app-terraform-lock-248195880649"
+    dynamodb_table = "retail-app-terraform-lock-<>"
     encrypt        = true
   }
 }
