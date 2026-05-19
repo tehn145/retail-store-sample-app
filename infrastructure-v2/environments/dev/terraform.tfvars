@@ -11,7 +11,7 @@ availability_zones   = ["ap-southeast-1a", "ap-southeast-1b"]
 public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
 private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
 
-aws_account_id       = "248195880649"
+aws_account_id       = "<>"
 kubernetes_version   = "1.27"
 
 # Node Group
