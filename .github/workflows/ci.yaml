@@ -1,10 +1,7 @@
 name: DevSecOps CI - Multi Services
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'src/**'
+  workflow_dispatch:
 
 env:
   AWS_REGION: ap-southeast-1
