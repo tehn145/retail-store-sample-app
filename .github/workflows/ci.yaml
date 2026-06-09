@@ -75,28 +75,29 @@ jobs:
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
-      - name: Push to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker push $ECR_REGISTRY/${{ matrix.service.ecr_repo }}:$IMAGE_TAG
 
-      - name: Update GitOps Repository
-        if: matrix.service.name == 'ui'
-        env:
-          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-          IMAGE_TAG: ${{ github.sha }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ matrix.service.ecr_repo }}
-        run: |
-          git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
-          cd devsecops-gitops-config/k8s/overlays/${ENVIRONMENT}
+      # - name: Push to Amazon ECR
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     docker push $ECR_REGISTRY/${{ matrix.service.ecr_repo }}:$IMAGE_TAG
 
-          sed -i "s|newTag: .*|newTag: ${IMAGE_TAG}|g" kustomization.yaml
+      # - name: Update GitOps Repository
+      #   if: matrix.service.name == 'ui'
+      #   env:
+      #     GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: ${{ matrix.service.ecr_repo }}
+      #   run: |
+      #     git clone https://x-access-token:${GITOPS_TOKEN}@github.com/tehn145/devsecops-gitops-config.git
+      #     cd devsecops-gitops-config/k8s/overlays/${ENVIRONMENT}
 
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add kustomization.yaml
-          git diff-index --quiet HEAD || git commit -m "Auto-update UI image to tag ${IMAGE_TAG} via CI"
-          git push
+      #     sed -i "s|newTag: .*|newTag: ${IMAGE_TAG}|g" kustomization.yaml
+
+      #     git config user.name "GitHub Actions Bot"
+      #     git config user.email "actions@github.com"
+      #     git add kustomization.yaml
+      #     git diff-index --quiet HEAD || git commit -m "Auto-update UI image to tag ${IMAGE_TAG} via CI"
+      #     git push
